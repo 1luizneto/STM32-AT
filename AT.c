@@ -169,11 +169,12 @@ void process_received_data(char *buffer, uint8_t *index, uint8_t *flag)
 }
 
 //Função para processar múltiplas linhas
-void process_received_lines(void) {
+void process_received_lines(void)
+{
     uint8_t i = 0;
     uint8_t line_start = 0;
 
-    // Processa o buffer enquanto houver dados
+    //Processa o buffer enquanto houver dados
     while(i < usart3_rx_index) {
         if(usart3_rx_buffer[i] == '\n') {
             // Finaliza a linha
@@ -314,7 +315,7 @@ void test_Atcommand(void)
     }
 }
 
-void send_ATcommand(char *command)
+void send_ATcommand()
 {
 
 	// Processa os dados recebidos pela USART3
@@ -324,7 +325,7 @@ void send_ATcommand(char *command)
 	if (usart1_command_ready)
 	{
 		usart1_command_ready = 0; // Reseta a flag
-		module_transmit(command);
+		module_transmit(usart1_rx_buffer);
 		memset(usart1_rx_buffer, 0, BUFFER_SIZE);
 	}
 
@@ -344,19 +345,15 @@ uint8_t send_at(void)
 	char command[16];
 	uint32_t timeout = 1000;
 
-	// Limpa o buffer da USART3
-	clear_buffer_usart3();
-	clear_buffer_usart1();
-
-	strcpy(command, "AT\r\n");
+	strcpy(command, AT);
 
 	//Envia o comando para a USART3
 	module_transmit(command);
 
 	//Aguarda resposta com timeout usando delay_ms
-	while(!usart3_command_ready && timeout > 0)
-	{
-		process_received_data(usart3_rx_buffer, &usart3_rx_index, &usart3_command_ready);
+	while (!usart3_command_ready && timeout > 0) {
+
+		send_ATcommand();
 		Delay_ms(50);  // Pequeno delay para evitar loop muito rápido
 		timeout -= 50;
 	}
@@ -365,13 +362,6 @@ uint8_t send_at(void)
 	{
 		return 0;  // Timeout
 	}
-
-	// Resposta recebida, envia para o terminal
-	console_transmit(usart3_rx_buffer);
-
-	//Limpa o buffer da usart
-	clear_buffer_usart3();
-	clear_buffer_usart1();
 
 	return 1;
 }
@@ -380,13 +370,9 @@ uint8_t send_at(void)
 uint8_t send_at_rst(void)
 {
 	char command[16];
-	uint32_t timeout = 50000;
+	uint32_t timeout = 5000;
 
-	// Limpa o buffer da USART3
-	clear_buffer_usart3();
-	clear_buffer_usart1();
-
-	strcpy(command, "AT+RST\r\n");
+	strcpy(command, AT_RST);
 
 	//Envia o comando para a USART3
 	module_transmit(command);
@@ -394,7 +380,7 @@ uint8_t send_at_rst(void)
 	//Aguarda resposta com timeout usando delay_ms
 	while(!usart3_command_ready && timeout > 0)
 	{
-		process_received_data(usart3_rx_buffer, &usart3_rx_index, &usart3_command_ready);
+		send_ATcommand();
 		Delay_ms(50);  // Pequeno delay para evitar loop muito rápido
 		timeout -= 50;
 	}
@@ -403,13 +389,6 @@ uint8_t send_at_rst(void)
 	{
 		return 0;  // Timeout
 	}
-
-	// Resposta recebida, envia para o terminal
-	console_transmit(usart3_rx_buffer);
-
-	//Limpa o buffer da usart
-	clear_buffer_usart3();
-	clear_buffer_usart1();
 
 	return 1;
 }

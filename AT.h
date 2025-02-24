@@ -17,7 +17,7 @@
 //#include "Utility.h"
 
 // Tamanho do buffer para transmissão e recepção
-#define BUFFER_SIZE 512
+#define BUFFER_SIZE 1024
 
 // Comandos AT básicos
 #define AT       "AT\r\n"

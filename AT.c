@@ -342,29 +342,39 @@ void send_ATcommand()
 // Envia o comando AT básico
 uint8_t send_at(void)
 {
-	char command[16];
-	uint32_t timeout = 1000;
+    char command[16];
+    uint32_t timeout = 1000;
 
-	strcpy(command, AT);
+    // Limpa o buffer de recepção antes de enviar o comando
+    clear_buffer_usart3();
+    clear_buffer_usart1();
 
-	//Envia o comando para a USART3
-	module_transmit(command);
+    strcpy(command, AT);
 
-	//Aguarda resposta com timeout usando delay_ms
-	while (!usart3_command_ready && timeout > 0) {
+    // Envia o comando para a USART3
+    module_transmit(command);
 
-		send_ATcommand();
-		Delay_ms(50);  // Pequeno delay para evitar loop muito rápido
-		timeout -= 50;
-	}
+    // Aguarda a resposta com timeout
+    while(timeout > 0)
+    {
+        // Garante que o buffer esteja null-terminated
+        usart3_rx_buffer[usart3_rx_index] = '\0';
 
-	if (timeout <= 0)
-	{
-		return 0;  // Timeout
-	}
+        // Se já encontrou o delimitador "\r\n", retorna imediatamente
+        if(strstr(usart3_rx_buffer, "\r\n") != NULL)
+        {
+        	console_transmit(usart3_rx_buffer);
+            return 1;
+        }
 
-	return 1;
+        //send_ATcommand();
+        Delay_ms(50);
+        timeout -= 50;
+    }
+
+    return 0;  // Timeout
 }
+
 
 // Envia o comando AT de reset
 uint8_t send_at_rst(void)
@@ -372,16 +382,29 @@ uint8_t send_at_rst(void)
 	char command[16];
 	uint32_t timeout = 5000;
 
+	clear_buffer_usart3();
+	clear_buffer_usart1();
+
 	strcpy(command, AT_RST);
 
 	//Envia o comando para a USART3
 	module_transmit(command);
 
 	//Aguarda resposta com timeout usando delay_ms
-	while(!usart3_command_ready && timeout > 0)
+	while(timeout > 0)
 	{
 		send_ATcommand();
-		Delay_ms(50);  // Pequeno delay para evitar loop muito rápido
+		// Assegura que o buffer esteja null-terminated
+		usart3_rx_buffer[usart3_rx_index] = '\0';
+
+		// Verifica se o buffer contém a sequência "\r\n"
+		if(strstr(usart3_rx_buffer, "\r\n") != NULL)
+		{
+			//console_transmit(usart3_rx_buffer);
+			return 1; //Encontrou o delimitador, sai do loop
+		}
+
+		Delay_ms(50);
 		timeout -= 50;
 	}
 
